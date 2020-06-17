@@ -32,14 +32,19 @@ func dataSourceFile() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"content": {
+						"filename": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"filename": {
+						"content": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+						"file": {
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 					},
@@ -50,6 +55,7 @@ func dataSourceFile() *schema.Resource {
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["filename"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["content"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["file"].(string)))
 					return hashcode.String(buf.String())
 				},
 			},
@@ -197,7 +203,21 @@ func archive(d *schema.ResourceData) error {
 		content := make(map[string][]byte)
 		for _, v := range vL {
 			src := v.(map[string]interface{})
-			content[src["filename"].(string)] = []byte(src["content"].(string))
+			filename := src["filename"].(string)
+
+			var fileContent []byte
+			if c, ok := src["content"]; ok {
+				fileContent = []byte(c.(string))
+			} else if f, ok := src["file"]; ok {
+				file := f.(string)
+				data, err := ioutil.ReadFile(file)
+				if err != nil {
+					return fmt.Errorf("error reading file %s: %s", file, err)
+				}
+				fileContent = data
+			}
+
+			content[filename] = fileContent
 		}
 		if err := archiver.ArchiveMultiple(content); err != nil {
 			return fmt.Errorf("error archiving content: %s", err)

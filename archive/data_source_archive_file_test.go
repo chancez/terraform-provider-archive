@@ -140,6 +140,10 @@ data "archive_file" "foo" {
 		filename = "content.txt"
 		content = "This is some content"
 	}
+	source {
+		filename = "content2.txt"
+		file = "test-fixtures/test-file.txt"
+	}
 	output_path = "zip_file_acc_test.zip"
 }
 `
